@@ -1,6 +1,10 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -35,20 +39,40 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildUI() {
     return DashChat(
+      inputOptions: InputOptions(
+        trailing: [
+          IconButton(
+            onPressed: _sendMediaMessage,
+            icon: const Icon(
+              Icons.image,
+            ),
+          ),
+        ],
+      ),
       currentUser: currentUser,
       onSend: _sendMessage,
       messages: messages,
     );
   }
 
+  // for message
+
   void _sendMessage(ChatMessage chatMessage) {
     setState(() {
       // spread oprater, take the messages list and take all that elements from that list and add the to this(messages) new list
       messages = [chatMessage, ...messages];
     });
+    // Handling sending message to Gemini API
     try {
       String question = chatMessage.text;
-      gemini.streamGenerateContent(question).listen((event) {
+      // Sending Image to Gemini API
+      List<Uint8List>? images;
+      if (chatMessage.medias?.isNotEmpty ?? false) {
+        images = [
+          File(chatMessage.medias!.first.url).readAsBytesSync(),
+        ];
+      }
+      gemini.streamGenerateContent(question, images: images).listen((event) {
         // respone
         ChatMessage? lastMessage = messages.firstOrNull;
         // check if the last message is from gemini or user
@@ -76,8 +100,32 @@ class _ChatScreenState extends State<ChatScreen> {
           });
         }
       });
-    } catch (e) {
-      print(e);
+    } catch (error) {
+      print("Error occurred: $error");
+    }
+  }
+
+  // for image
+  void _sendMediaMessage() async {
+    ImagePicker picker = ImagePicker();
+    XFile? file = await picker.pickImage(
+      source: ImageSource.gallery,
+    );
+    // constructing chat message
+    if (file != null) {
+      ChatMessage chatMessage = ChatMessage(
+        user: currentUser,
+        createdAt: DateTime.now(),
+        text: "Describe this picture?",
+        medias: [
+          ChatMedia(
+            url: file.path,
+            fileName: "",
+            type: MediaType.image,
+          ),
+        ],
+      );
+      _sendMessage(chatMessage);
     }
   }
 }
