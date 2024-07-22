@@ -18,6 +18,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final Gemini gemini = Gemini.instance;
   // List of chat messeage
   List<ChatMessage> messages = [];
+  // for typeing loading
+  final List<ChatUser> _typingUsers = <ChatUser>[];
 
   ChatUser currentUser = ChatUser(id: "0", firstName: "User");
   ChatUser genminiUser = ChatUser(
@@ -33,16 +35,18 @@ class _ChatScreenState extends State<ChatScreen> {
         centerTitle: true,
         title: const Text("Gemini Chatbot"),
       ),
-      body: _buildUI(),
+      body: buildUI(),
     );
   }
 
-  Widget _buildUI() {
+  Widget buildUI() {
     return DashChat(
+      typingUsers: _typingUsers,
+      scrollToBottomOptions: const ScrollToBottomOptions(),
       inputOptions: InputOptions(
         trailing: [
           IconButton(
-            onPressed: _sendMediaMessage,
+            onPressed: sendMediaMessage,
             icon: const Icon(
               Icons.image,
             ),
@@ -50,17 +54,19 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
       currentUser: currentUser,
-      onSend: _sendMessage,
+      onSend: sendMessage,
       messages: messages,
     );
   }
 
   // for message
 
-  void _sendMessage(ChatMessage chatMessage) {
+  void sendMessage(ChatMessage chatMessage) {
     setState(() {
       // spread oprater, take the messages list and take all that elements from that list and add the to this(messages) new list
       messages = [chatMessage, ...messages];
+      // Displaying Typing Indicator
+      _typingUsers.add(genminiUser);
     });
     // Handling sending message to Gemini API
     try {
@@ -71,6 +77,7 @@ class _ChatScreenState extends State<ChatScreen> {
         images = [
           File(chatMessage.medias!.first.url).readAsBytesSync(),
         ];
+        print('Image path: ${chatMessage.medias!.first.url}');
       }
       gemini.streamGenerateContent(question, images: images).listen((event) {
         // respone
@@ -97,6 +104,8 @@ class _ChatScreenState extends State<ChatScreen> {
           );
           setState(() {
             messages = [newMessage, ...messages];
+            // removing Typing Indicator after respone
+            _typingUsers.remove(genminiUser);
           });
         }
       });
@@ -106,7 +115,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // for image
-  void _sendMediaMessage() async {
+  Future<void> sendMediaMessage() async {
     ImagePicker picker = ImagePicker();
     XFile? file = await picker.pickImage(
       source: ImageSource.gallery,
@@ -125,7 +134,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       );
-      _sendMessage(chatMessage);
+      sendMessage(chatMessage);
     }
   }
 }
