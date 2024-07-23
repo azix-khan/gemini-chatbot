@@ -108,6 +108,8 @@ class _ChatScreenState extends State<ChatScreen> {
             _typingUsers.remove(genminiUser);
           });
         }
+      }).onError((error) {
+        print('Error occored ${error}');
       });
     } catch (error) {
       print("Error occurred: $error");

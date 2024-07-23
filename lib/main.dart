@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:gemini_chatbot/constants/consts.dart';
+import 'package:gemini_chatbot/screens/chat.dart';
 import 'package:gemini_chatbot/screens/chat_screen.dart';
 
 void main() {
